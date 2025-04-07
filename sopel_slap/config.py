@@ -65,6 +65,12 @@ VERBS = (
     "smears haldi on",
     "smears leftover qorma on",
     "throws a daig of emotional damage at",
+    "splashes Rooh Afza on",
+    "slams into",
+    "hurls a broken PIA tray table at",
+    "smears melted kulfi all over",
+    "pelts unpaid bijli bills at",
+    "flings a chai-dipped biscuit at",
 )
 
 
