@@ -60,7 +60,7 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     global_verbs = bot.settings.slap.verbs
 
     if channel == "#example":
-        extra = bot.settings.slap.bk_verbs
+        extra = bot.settings.slap.example_verbs
         verbs = global_verbs + extra
     else:
         verbs = global_verbs
