@@ -32,8 +32,6 @@ VERBS = (
     "cracks a papad on",
     "flings jalebi at",
     "boils in nihari and pours on",
-    "wraps in plastic sofa covers and yeets",
-    "smacks with a PTCL modem",
     "blames electricity theft on",
     "shouts “Oye!” and charges at",
     "sends a rishta proposal to",
