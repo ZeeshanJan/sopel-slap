@@ -6,6 +6,7 @@ Copyright 2024, dgw, technobabbl.es
 
 https://sopel.chat
 """
+
 from __future__ import annotations
 
 import random
@@ -25,7 +26,7 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
 
     # ensure target is an Identifier to increase reliability of "is nick" check
     if not isinstance(target, tools.Identifier):
-        if hasattr(bot, 'make_identifier'):
+        if hasattr(bot, "make_identifier"):
             target = bot.make_identifier(target)
         else:
             # TODO: remove once Sopel 7 support is dropped
@@ -51,11 +52,20 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
             target = bot.settings.slap.reflexive
 
     if not trigger.admin and (
-        target == bot.config.core.owner or
-        target in bot.config.core.admins
+        target == bot.config.core.owner or target in bot.config.core.admins
     ):
         target = trigger.nick
 
-    verb = random.choice(bot.settings.slap.verbs)
+    channel = trigger.sender.lower()
+    global_verbs = bot.settings.slap.verbs
+
+    if channel == "#bk":
+        extra = bot.settings.slap.bk_verbs
+        verbs = global_verbs + extra
+    else:
+        verbs = global_verbs
+
+    # verb = random.choice(bot.settings.slap.verbs)
+    verb = random.choice(verbs)
 
     bot.action(f"{verb} {target}")

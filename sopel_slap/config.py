@@ -71,6 +71,16 @@ VERBS = (
     "flings a chai-dipped biscuit at",
 )
 
+PAKISTAN_VERBS = (
+    "slaps with a cricket bat wrapped in naan",
+    "yells 'OYE!' and launches a pakora",
+    "throws chai-drenched newspaper at",
+    "bonks with a PTCL modem still buffering",
+    "flings leftover nihari on",
+)
+
+BK_VERBS = ("kicks in the nuts", "spanks the butts")
+
 
 class SlapSection(types.StaticSection):
     verbs = types.ListAttribute("verbs", default=VERBS)
@@ -78,6 +88,10 @@ class SlapSection(types.StaticSection):
 
     reflexive = types.ValidatedAttribute("reflexive", default="itself")
     """The reflexive pronoun the bot uses when someone slaps it."""
+
+    pakistan_verbs = types.ListAttribute("pakistan_verbs", default=PAKISTAN_VERBS)
+
+    bk_verbs = types.ListAttribute("bk_verbs", default=BK_VERBS)
 
 
 def do_configure(section: types.StaticSection):
