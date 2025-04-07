@@ -72,14 +72,30 @@ VERBS = (
 )
 
 PAKISTAN_VERBS = (
-    "slaps with a cricket bat wrapped in naan",
-    "yells 'OYE!' and launches a pakora",
-    "throws chai-drenched newspaper at",
-    "bonks with a PTCL modem still buffering",
-    "flings leftover nihari on",
+    "wraps in chillmill` s smelly socks and hurls at",
+    "stuffed RudeDude's ego into a cannon and fired at",
+    "loads Mr_PresidenT's broken promises into a cannon and fired at",
+    "baked Rapt's failed CSS attempts into a lasagna of regret and served to",
+    "compressed Rapt's emotional damage logs into a floppy disk and frisbee'd at",
+    "burned Stalker's playlist of heartbreak songs onto a CD and hurled at",
+    "archived neeni's unpaid therapy bills into a USB and yeeted at",
+    "stuffed Khurram's rejected rishta proposals into a tote bag and tossed at",
+    "wrapped BK-'s paratha in tissue and frisbee'd it toward",
+    "microwaved neeni's opinions and served them boiling to",
+    "compressed TiN`TiN's corrupted Excel sheets into a floppy and missile-launched at",
+    "rolled up midhat's 7 semesters of anatomy notes and smacked them across",
+    "adjusted anetta^'s stethoscope like a crown and nodded disapprovingly at",
+    "compared anetta^'s patience to the emotional chaos of",
+    "asked anetta^ to diagnose the attention-seeking tendencies of",
+    "watched Mr_PresidenT melt hearts with charm and then turned to cringe at",
+    "took flirting lessons from Mr_PresidenT and immediately expelled",
+    "saw Mr_PresidenT charm an entire channel and muted",
+    "offered roses with Mr_PresidenT and handed expired ketchup to",
+    "asked midhat to diagnose drama and she immediately pointed to",
+    "borrowed midhat's neuro notes and still couldn't fix",
+    "heard midhat memorize 200 drug names but forgot the existence of",
+    "gave midhat a scalpel and she carved out the overconfidence of",
 )
-
-BK_VERBS = ("kicks in the nuts", "spanks the butts")
 
 
 class SlapSection(types.StaticSection):
@@ -90,8 +106,6 @@ class SlapSection(types.StaticSection):
     """The reflexive pronoun the bot uses when someone slaps it."""
 
     pakistan_verbs = types.ListAttribute("pakistan_verbs", default=PAKISTAN_VERBS)
-
-    bk_verbs = types.ListAttribute("bk_verbs", default=BK_VERBS)
 
 
 def do_configure(section: types.StaticSection):

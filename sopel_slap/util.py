@@ -59,8 +59,8 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     channel = trigger.sender.lower()
     global_verbs = bot.settings.slap.verbs
 
-    if channel == "#bk":
-        extra = bot.settings.slap.bk_verbs
+    if channel == "#pakistan":
+        extra = bot.settings.slap.pakistan_verbs
         verbs = global_verbs + extra
     else:
         verbs = global_verbs
