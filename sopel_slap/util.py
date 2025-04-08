@@ -8,11 +8,15 @@ https://sopel.chat
 """
 
 from __future__ import annotations
+from collections import defaultdict
 
 import random
 from typing import TYPE_CHECKING
 
 from sopel import formatting, tools
+
+# Holds shuffled verb lists for each channel
+channel_verb_queues = defaultdict(list)
 
 if TYPE_CHECKING:
     from sopel.bot import SopelWrapper
@@ -64,6 +68,15 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
         verbs = global_verbs + extra
     else:
         verbs = global_verbs
+
+    # Use per-channel shuffled queue to reduce repetition
+    queue = channel_verb_queues[channel]
+
+    if not queue:
+        queue.extend(verbs)
+        random.shuffle(queue)
+
+    verb = queue.pop()
 
     # verb = random.choice(bot.settings.slap.verbs)
     verb = random.choice(verbs)
