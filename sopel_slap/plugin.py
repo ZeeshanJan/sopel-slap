@@ -13,10 +13,10 @@ from __future__ import annotations
 
 from sopel import plugin
 
-from .config import SlapSection, do_configure
-from .util import slap
+# from .config import SlapSection, do_configure
+from .util import slap, load_slaps
 
-
+"""
 def setup(bot):
     bot.settings.define_section("slap", SlapSection)
 
@@ -24,6 +24,7 @@ def setup(bot):
 def configure(settings):
     settings.define_section("slap", SlapSection)
     do_configure(settings.slap)
+"""
 
 
 @plugin.commands("slap", "slaps")
@@ -43,3 +44,10 @@ def slap_command(bot, trigger):
         target = target.strip()
 
     return slap(bot, trigger, target)
+
+
+@plugin.command("reload-slaps")
+@plugin.require_admin("Only admins can reload slap verbs.")
+def reload_slaps_command(bot, trigger):
+    load_slaps()
+    bot.say("Slap verbs reloaded from JSON files.", trigger.sender)

@@ -13,6 +13,9 @@ from collections import defaultdict
 import random
 from typing import TYPE_CHECKING
 
+import json
+import os
+
 from sopel import formatting, tools
 
 # Holds shuffled verb lists for each channel
@@ -23,7 +26,38 @@ if TYPE_CHECKING:
     from sopel.trigger import Trigger
 
 
+VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "verbs.json")
+EXAMPLE_VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "example.json")
+
+
+VERBS = []
+EXAMPLE_VERBS = []
+
+
+def load_slaps():
+    global VERBS, EXAMPLE_VERBS
+    try:
+        with open(VERBS_PATH, "r", encoding="utf-8") as f:
+            VERBS = json.load(f)
+    except Exception as e:
+        print(f"[sopel-slap] Failed to load verbs.json: {e}")
+        VERBS = []
+
+    try:
+        with open(EXAMPLE_VERBS_PATH, "r", encoding="utf-8") as f:
+            EXAMPLE_VERBS = json.load(f)
+    except Exception as e:
+        print(f"[sopel-slap] Failed to load example.json: {e}")
+        EXAMPLE_VERBS = []
+
+    print("[sopel-slap] Slap verbs reloaded.")
+
+
+load_slaps()
+
+
 def slap(bot: SopelWrapper, trigger: Trigger, target: str):
+    global VERBS, EXAMPLE_VERBS
     """Do the slapping."""
     # the target could contain formatting control codes, so strip those
     target = formatting.plain(target)
@@ -64,10 +98,12 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     global_verbs = bot.settings.slap.verbs
 
     if channel == "#example":
-        extra = bot.settings.slap.example_verbs
-        verbs = global_verbs + extra
+        # extra = bot.settings.slap.example_verbs
+        # verbs = global_verbs + extra
+        verbs = VERBS + EXAMPLE_VERBS
     else:
-        verbs = global_verbs
+        # verbs = global_verbs
+        verbs = VERBS
 
     # Use per-channel shuffled queue to reduce repetition
     queue = channel_verb_queues[channel]
@@ -79,6 +115,6 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     verb = queue.pop()
 
     # verb = random.choice(bot.settings.slap.verbs)
-    verb = random.choice(verbs)
+    # verb = random.choice(verbs)
 
     bot.action(f"{verb} {target}")
