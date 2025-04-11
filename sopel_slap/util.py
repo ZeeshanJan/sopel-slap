@@ -18,6 +18,8 @@ import os
 
 from sopel import formatting, tools
 
+import time
+
 # Holds shuffled verb lists for each channel
 channel_verb_queues = defaultdict(list)
 
@@ -65,6 +67,7 @@ def load_pokes():
     try:
         with open(POKES_PATH, "r", encoding="utf-8") as f:
             POKES = json.load(f)
+        random.shuffle(POKES)
     except Exception as e:
         print(f"[sopel-slap] Failed to load pokes.json: {e}")
         POKES = []
@@ -166,5 +169,7 @@ def poke(bot: SopelWrapper, trigger: Trigger, target: str):
         bot.say("No poke actions loaded. Please reload or check pokes.json.")
         return
 
+    # verb = random.choice(POKES)
+    random.seed(time.time())  # ensure varied randomness per second
     verb = random.choice(POKES)
     bot.action(f"{verb} {target}")
