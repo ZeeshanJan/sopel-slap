@@ -50,6 +50,8 @@ def load_slaps():
         print(f"[sopel-slap] Failed to load pakistan.json: {e}")
         PAKISTAN_VERBS = []
 
+    # Clear cached queues so we use updated lists
+    channel_verb_queues.clear()
     print("[sopel-slap] Slap verbs reloaded.")
 
 
