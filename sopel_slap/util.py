@@ -151,7 +151,7 @@ def poke(bot: SopelWrapper, trigger: Trigger, target: str):
     target = formatting.plain(target)
 
     if not isinstance(target, tools.Identifier):
-        target = bot.make_identifier(target)
+        target = tools.Identifier(target)
 
     if not target.is_nick():
         bot.reply("You can't poke the whole channel!")
