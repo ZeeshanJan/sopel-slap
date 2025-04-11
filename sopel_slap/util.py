@@ -111,8 +111,15 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     queue = channel_verb_queues[channel]
 
     if not queue:
+        if not verbs:
+            bot.reply("No slap verbs are loaded. Please reload or check JSON files.")
+            return
         queue.extend(verbs)
         random.shuffle(queue)
+
+    if not queue:
+        bot.reply("Slap queue is unexpectedly empty.")
+        return
 
     verb = queue.pop()
 
