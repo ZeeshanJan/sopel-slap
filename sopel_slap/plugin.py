@@ -14,7 +14,7 @@ from __future__ import annotations
 from sopel import plugin
 
 # from .config import SlapSection, do_configure
-from .util import slap, load_slaps
+from .util import slap, load_slaps, poke, load_pokes
 
 """
 def setup(bot):
@@ -51,3 +51,23 @@ def slap_command(bot, trigger):
 def reload_slaps_command(bot, trigger):
     load_slaps()
     bot.say("Slap verbs reloaded from JSON files.", trigger.sender)
+
+
+@plugin.commands("poke", "pokes")
+def poke_command(bot, trigger):
+    target = trigger.group(3)
+    if target is None:
+        if trigger.ctcp:
+            return plugin.NOLIMIT
+        target = trigger.nick
+    else:
+        target = target.strip()
+
+    return poke(bot, trigger, target)
+
+
+@plugin.command("reload-pokes")
+@plugin.require_admin("Only admins can reload poke verbs.")
+def reload_pokes_command(bot, trigger):
+    load_pokes()
+    bot.say("Poke verbs reloaded from JSON file.", trigger.sender)

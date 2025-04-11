@@ -29,9 +29,11 @@ if TYPE_CHECKING:
 VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "verbs.json")
 PAKISTAN_VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "pakistan.json")
 
-
 VERBS = []
 PAKISTAN_VERBS = []
+
+POKES_PATH = os.path.join(os.path.dirname(__file__), "pokes", "pokes.json")
+POKES = []
 
 
 def load_slaps():
@@ -56,6 +58,21 @@ def load_slaps():
 
 
 load_slaps()
+
+
+def load_pokes():
+    global POKES
+    try:
+        with open(POKES_PATH, "r", encoding="utf-8") as f:
+            POKES = json.load(f)
+    except Exception as e:
+        print(f"[sopel-slap] Failed to load pokes.json: {e}")
+        POKES = []
+
+    print("[sopel-slap] Poke verbs reloaded.")
+
+
+load_pokes()
 
 
 def slap(bot: SopelWrapper, trigger: Trigger, target: str):
@@ -126,4 +143,28 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     # verb = random.choice(bot.settings.slap.verbs)
     # verb = random.choice(verbs)
 
+    bot.action(f"{verb} {target}")
+
+
+def poke(bot: SopelWrapper, trigger: Trigger, target: str):
+    global POKES
+    target = formatting.plain(target)
+
+    if not isinstance(target, tools.Identifier):
+        target = bot.make_identifier(target)
+
+    if not target.is_nick():
+        bot.reply("You can't poke the whole channel!")
+        return
+
+    if target not in bot.channels[trigger.sender].users:
+        if not trigger.ctcp:
+            bot.reply("You can't poke someone who isn't here!")
+        return
+
+    if not POKES:
+        bot.say("No poke actions loaded. Please reload or check pokes.json.")
+        return
+
+    verb = random.choice(POKES)
     bot.action(f"{verb} {target}")
