@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from sopel.config import types
 
+"""
 VERBS = (
     "throws a naan at",
     "hurls a slipper like a desi ammi at",
@@ -91,15 +92,17 @@ PAKISTAN_VERBS = (
     "gave midhat a scalpel and she carved out the overconfidence of",
 )
 
+"""
+
 
 class SlapSection(types.StaticSection):
-    verbs = types.ListAttribute("verbs", default=VERBS)
+    # verbs = types.ListAttribute("verbs", default=VERBS)
     """Verbs to choose from when slapping someone."""
 
     reflexive = types.ValidatedAttribute("reflexive", default="itself")
     """The reflexive pronoun the bot uses when someone slaps it."""
 
-    pakistan_verbs = types.ListAttribute("pakistan_verbs", default=PAKISTAN_VERBS)
+    # pakistan_verbs = types.ListAttribute("pakistan_verbs", default=PAKISTAN_VERBS)
 
 
 def do_configure(section: types.StaticSection):
