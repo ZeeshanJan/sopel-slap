@@ -165,6 +165,17 @@ def poke(bot: SopelWrapper, trigger: Trigger, target: str):
             bot.reply("You can't poke someone who isn't here!")
         return
 
+    if target == bot.nick:
+        if not trigger.admin:
+            target = trigger.nick
+        else:
+            target = bot.settings.slap.reflexive
+
+    if not trigger.admin and (
+        target == bot.config.core.owner or target in bot.config.core.admins
+    ):
+        target = trigger.nick
+
     if not POKES:
         bot.say("No poke actions loaded. Please reload or check pokes.json.")
         return
