@@ -37,9 +37,37 @@ PAKISTAN_VERBS = []
 POKES_PATH = os.path.join(os.path.dirname(__file__), "pokes", "pokes.json")
 POKES = []
 
+# Modification times of the JSON files as of the last load, so edits made
+# outside the bot (by hand or from Sopel UI) are picked up automatically.
+_slaps_mtime = None
+_pokes_mtime = None
+
+
+def _mtimes(*paths):
+    result = []
+    for path in paths:
+        try:
+            result.append(os.stat(path).st_mtime_ns)
+        except OSError:
+            result.append(None)
+    return tuple(result)
+
+
+def refresh_slaps():
+    """Reload the slap verbs if either JSON file changed since the last load."""
+    if _mtimes(VERBS_PATH, PAKISTAN_VERBS_PATH) != _slaps_mtime:
+        load_slaps()
+
+
+def refresh_pokes():
+    """Reload the poke verbs if the JSON file changed since the last load."""
+    if _mtimes(POKES_PATH) != _pokes_mtime:
+        load_pokes()
+
 
 def load_slaps():
-    global VERBS, PAKISTAN_VERBS
+    global VERBS, PAKISTAN_VERBS, _slaps_mtime
+    _slaps_mtime = _mtimes(VERBS_PATH, PAKISTAN_VERBS_PATH)
     try:
         with open(VERBS_PATH, "r", encoding="utf-8") as f:
             VERBS = json.load(f)
@@ -63,7 +91,8 @@ load_slaps()
 
 
 def load_pokes():
-    global POKES
+    global POKES, _pokes_mtime
+    _pokes_mtime = _mtimes(POKES_PATH)
     try:
         with open(POKES_PATH, "r", encoding="utf-8") as f:
             POKES = json.load(f)
@@ -118,6 +147,8 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
 
     channel = trigger.sender.lower()
     global_verbs = bot.settings.slap.verbs
+
+    refresh_slaps()
 
     if channel == "#pakistan":
         # extra = bot.settings.slap.pakistan_verbs
@@ -175,6 +206,8 @@ def poke(bot: SopelWrapper, trigger: Trigger, target: str):
         target == bot.config.core.owner or target in bot.config.core.admins
     ):
         target = trigger.nick
+
+    refresh_pokes()
 
     if not POKES:
         bot.say("No poke actions loaded. Please reload or check pokes.json.")
