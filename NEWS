@@ -1,5 +1,11 @@
 ## Changelog
 
+### 0.4.2
+
+* Add some extra default verbs (suggested by Zeeshan Jan)
+* Update package metadata: remove deprecated classifiers & TOML table
+
+
 ### 0.4.1
 
 * Skip nonexistent-nick error message for action slaps ([#8][])
