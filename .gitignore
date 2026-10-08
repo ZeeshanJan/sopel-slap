@@ -55,3 +55,8 @@ docs/_build/
 
 # PyBuilder
 target/
+
+# Phrase lists are specific to each bot owner. Copy the .example files to
+# verbs.json, pakistan.json and pokes.json to get started.
+sopel_slap/verbs/*.json
+sopel_slap/pokes/*.json
