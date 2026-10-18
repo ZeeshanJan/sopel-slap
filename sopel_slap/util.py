@@ -29,10 +29,12 @@ if TYPE_CHECKING:
 
 
 VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "verbs.json")
-EXAMPLE_VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "example.json")
+# Extra slaps for one channel each: verbs/channels/<channel>.json, named after
+# the channel without its "#" (e.g. example.json for #example).
+CHANNEL_VERBS_DIR = os.path.join(os.path.dirname(__file__), "verbs", "channels")
 
 VERBS = []
-EXAMPLE_VERBS = []
+CHANNEL_VERBS = {}
 
 POKES_PATH = os.path.join(os.path.dirname(__file__), "pokes", "pokes.json")
 POKES = []
@@ -53,9 +55,27 @@ def _mtimes(*paths):
     return tuple(result)
 
 
+def _channel_files():
+    """The channel phrase files, as {channel name without "#": path}."""
+    try:
+        names = sorted(os.listdir(CHANNEL_VERBS_DIR))
+    except OSError:
+        return {}
+    return {
+        name[:-len(".json")].lower(): os.path.join(CHANNEL_VERBS_DIR, name)
+        for name in names
+        if name.endswith(".json")
+    }
+
+
+def _slaps_state():
+    files = _channel_files()
+    return (_mtimes(VERBS_PATH, *files.values()), tuple(files))
+
+
 def refresh_slaps():
-    """Reload the slap verbs if either JSON file changed since the last load."""
-    if _mtimes(VERBS_PATH, EXAMPLE_VERBS_PATH) != _slaps_mtime:
+    """Reload the slap verbs if any of the JSON files changed since the last load."""
+    if _slaps_state() != _slaps_mtime:
         load_slaps()
 
 
@@ -66,8 +86,8 @@ def refresh_pokes():
 
 
 def load_slaps():
-    global VERBS, EXAMPLE_VERBS, _slaps_mtime
-    _slaps_mtime = _mtimes(VERBS_PATH, EXAMPLE_VERBS_PATH)
+    global VERBS, CHANNEL_VERBS, _slaps_mtime
+    _slaps_mtime = _slaps_state()
     try:
         with open(VERBS_PATH, "r", encoding="utf-8") as f:
             VERBS = json.load(f)
@@ -75,12 +95,13 @@ def load_slaps():
         print(f"[sopel-slap] Failed to load verbs.json: {e}")
         VERBS = []
 
-    try:
-        with open(EXAMPLE_VERBS_PATH, "r", encoding="utf-8") as f:
-            EXAMPLE_VERBS = json.load(f)
-    except Exception as e:
-        print(f"[sopel-slap] Failed to load example.json: {e}")
-        EXAMPLE_VERBS = []
+    CHANNEL_VERBS = {}
+    for channel, path in _channel_files().items():
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                CHANNEL_VERBS[channel] = [str(verb) for verb in json.load(f)]
+        except Exception as e:
+            print(f"[sopel-slap] Failed to load channels/{os.path.basename(path)}: {e}")
 
     # Clear cached queues so we use updated lists
     channel_verb_queues.clear()
@@ -108,7 +129,6 @@ load_pokes()
 
 
 def slap(bot: SopelWrapper, trigger: Trigger, target: str):
-    global VERBS, EXAMPLE_VERBS
     """Do the slapping."""
     # the target could contain formatting control codes, so strip those
     target = formatting.plain(target)
@@ -150,13 +170,8 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
 
     refresh_slaps()
 
-    if channel == "#example":
-        # extra = bot.settings.slap.example_verbs
-        # verbs = global_verbs + extra
-        verbs = VERBS + EXAMPLE_VERBS
-    else:
-        # verbs = global_verbs
-        verbs = VERBS
+    # The general slaps, plus this channel's own ones if it has a file.
+    verbs = VERBS + CHANNEL_VERBS.get(channel.lstrip("#&"), [])
 
     # Use per-channel shuffled queue to reduce repetition
     queue = channel_verb_queues[channel]

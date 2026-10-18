@@ -9,14 +9,15 @@ merging `upstream/master` into `extend`.
 
 ## What the fork adds
 
-- `.slap` / `.slaps` with phrases loaded from JSON files, including a
-  channel-specific list, and `.poke` / `.pokes`.
+- `.slap` / `.slaps` with phrases loaded from JSON files, plus extra
+  phrases per channel (`verbs/channels/<channel>.json`, named without the
+  `#`), and `.poke` / `.pokes`.
 - Phrase files are re-read automatically when they change (mtime check in
   `util.py`); `.reload-slaps` forces it.
 
 ## Files
 
-- `sopel_slap/verbs/verbs.json`, `sopel_slap/verbs/example.json`,
+- `sopel_slap/verbs/verbs.json`, `sopel_slap/verbs/channels/*.json`,
   `sopel_slap/pokes/pokes.json`: the owner's phrase lists. Git-ignored; only
   the `.example` files are committed. sopel-ui's "Slaps & pokes" page edits
   them.
