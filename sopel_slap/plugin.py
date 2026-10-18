@@ -11,10 +11,23 @@ https://sopel.chat
 
 from __future__ import annotations
 
+import importlib
+
 from sopel import plugin
 
+from . import util
+
+# A plugin reload re-imports only this module; reload util too, so changes to
+# it apply without restarting the bot.
+importlib.reload(util)
+
 # from .config import SlapSection, do_configure
-from .util import slap, load_slaps, poke, load_pokes
+from .util import slap, load_slaps, poke, load_pokes  # noqa: E402
+
+
+def setup(bot):
+    util.setup(bot)
+
 
 """
 def setup(bot):
@@ -49,8 +62,8 @@ def slap_command(bot, trigger):
 @plugin.command("reload-slaps")
 @plugin.require_admin("Only admins can reload slap verbs.")
 def reload_slaps_command(bot, trigger):
-    load_slaps()
-    bot.say("Slap verbs reloaded from JSON files.", trigger.sender)
+    load_slaps(bot)
+    bot.say("Slap verbs reloaded.", trigger.sender)
 
 
 @plugin.commands("poke", "pokes")
@@ -69,5 +82,5 @@ def poke_command(bot, trigger):
 @plugin.command("reload-pokes")
 @plugin.require_admin("Only admins can reload poke verbs.")
 def reload_pokes_command(bot, trigger):
-    load_pokes()
-    bot.say("Poke verbs reloaded from JSON file.", trigger.sender)
+    load_pokes(bot)
+    bot.say("Poke verbs reloaded.", trigger.sender)

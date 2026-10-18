@@ -9,20 +9,24 @@ merging `upstream/master` into `extend`.
 
 ## What the fork adds
 
-- `.slap` / `.slaps` with phrases loaded from JSON files, plus extra
-  phrases per channel (`verbs/channels/<channel>.json`, named without the
-  `#`), and `.poke` / `.pokes`.
-- Phrase files are re-read automatically when they change (mtime check in
-  `util.py`); `.reload-slaps` forces it.
+- `.slap` / `.slaps` with phrases from the bot's database, plus extra
+  phrases per channel, and `.poke` / `.pokes`.
+- Changes made elsewhere are picked up on the next use; `.reload-slaps`
+  forces a reload.
 
-## Files
+## Storage
 
-- `sopel_slap/verbs/verbs.json`, `sopel_slap/verbs/channels/*.json`,
-  `sopel_slap/pokes/pokes.json`: the owner's phrase lists. Git-ignored; only
-  the `.example` files are committed. sopel-ui's "Slaps & pokes" page edits
-  them.
+Phrase lists are in the bot's database (defined in `util.py`): `slap_lists`
+(`slaps`, `pokes`, or a channel like `#example`), `slap_phrases` (list,
+position, phrase) and `slap_state` (a version every writer raises; the plugin
+reloads when it changes, so sopel-ui's "Slaps & pokes" edits apply at once).
+Old JSON files (`verbs/verbs.json`, `verbs/channels/*.json`,
+`pokes/pokes.json`) are imported once into an empty database and moved to
+`<homedir>/backups/sopel-slap/`; only `.example` files are committed.
+
 - `config.py`: the `[slap]` section (`verbs`, `reflexive`).
-- `plugin.py` (commands), `util.py` (loading and choosing phrases).
+- `plugin.py` (commands; reloads `util` on every plugin reload, so changes
+  there need no restart), `util.py` (storage and choosing phrases).
 
 Keep the upstream code style (it has its own lint setup in
 `dev-requirements.txt` / `Makefile`), and keep fork changes small so merges

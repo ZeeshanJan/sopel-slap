@@ -14,11 +14,17 @@ import random
 from typing import TYPE_CHECKING
 
 import json
+import logging
 import os
+import shutil
 
 from sopel import formatting, tools
+from sqlalchemy import Column, Integer, MetaData, String, Table, Text, insert, select
+from sqlalchemy.exc import SQLAlchemyError
 
 import time
+
+LOGGER = logging.getLogger("sopel.externals.slap")
 
 # Holds shuffled verb lists for each channel
 channel_verb_queues = defaultdict(list)
@@ -28,104 +34,136 @@ if TYPE_CHECKING:
     from sopel.trigger import Trigger
 
 
-VERBS_PATH = os.path.join(os.path.dirname(__file__), "verbs", "verbs.json")
-# Extra slaps for one channel each: verbs/channels/<channel>.json, named after
-# the channel without its "#" (e.g. example.json for #example).
-CHANNEL_VERBS_DIR = os.path.join(os.path.dirname(__file__), "verbs", "channels")
+# Phrase lists live in the bot's database:
+#   slap_lists    one row per list: "slaps" (every channel), "pokes", or a
+#                 channel name ("#example") for extra slaps used only there
+#   slap_phrases  the phrases of each list, in order
+#   slap_state    a version number raised by every writer (this plugin, Sopel
+#                 UI), so edits made elsewhere are picked up on the next use
+metadata = MetaData()
+lists_table = Table(
+    "slap_lists", metadata,
+    Column("name", String(64), primary_key=True),
+)
+phrases_table = Table(
+    "slap_phrases", metadata,
+    Column("id", Integer, primary_key=True),
+    Column("list", String(64), nullable=False, index=True),
+    Column("position", Integer, nullable=False),
+    Column("phrase", Text, nullable=False),
+)
+state_table = Table(
+    "slap_state", metadata,
+    Column("name", String(32), primary_key=True),
+    Column("version", Integer, nullable=False, default=0),
+)
 
-VERBS = []
-CHANNEL_VERBS = {}
-
-POKES_PATH = os.path.join(os.path.dirname(__file__), "pokes", "pokes.json")
+VERBS = []  # slaps for every channel
+CHANNEL_VERBS = {}  # "#channel" -> extra slaps used only there
 POKES = []
-
-# Modification times of the JSON files as of the last load, so edits made
-# outside the bot (by hand or from Sopel UI) are picked up automatically.
-_slaps_mtime = None
-_pokes_mtime = None
+_loaded_version = None
 
 
-def _mtimes(*paths):
-    result = []
-    for path in paths:
-        try:
-            result.append(os.stat(path).st_mtime_ns)
-        except OSError:
-            result.append(None)
-    return tuple(result)
+def _version(bot):
+    with bot.db.engine.connect() as conn:
+        return conn.execute(
+            select(state_table.c.version).where(state_table.c.name == "phrases")
+        ).scalar() or 0
 
 
-def _channel_files():
-    """The channel phrase files, as {channel name without "#": path}."""
-    try:
-        names = sorted(os.listdir(CHANNEL_VERBS_DIR))
-    except OSError:
-        return {}
-    return {
-        name[:-len(".json")].lower(): os.path.join(CHANNEL_VERBS_DIR, name)
-        for name in names
-        if name.endswith(".json")
-    }
-
-
-def _slaps_state():
-    files = _channel_files()
-    return (_mtimes(VERBS_PATH, *files.values()), tuple(files))
-
-
-def refresh_slaps():
-    """Reload the slap verbs if any of the JSON files changed since the last load."""
-    if _slaps_state() != _slaps_mtime:
-        load_slaps()
-
-
-def refresh_pokes():
-    """Reload the poke verbs if the JSON file changed since the last load."""
-    if _mtimes(POKES_PATH) != _pokes_mtime:
-        load_pokes()
-
-
-def load_slaps():
-    global VERBS, CHANNEL_VERBS, _slaps_mtime
-    _slaps_mtime = _slaps_state()
-    try:
-        with open(VERBS_PATH, "r", encoding="utf-8") as f:
-            VERBS = json.load(f)
-    except Exception as e:
-        print(f"[sopel-slap] Failed to load verbs.json: {e}")
-        VERBS = []
-
-    CHANNEL_VERBS = {}
-    for channel, path in _channel_files().items():
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                CHANNEL_VERBS[channel] = [str(verb) for verb in json.load(f)]
-        except Exception as e:
-            print(f"[sopel-slap] Failed to load channels/{os.path.basename(path)}: {e}")
-
-    # Clear cached queues so we use updated lists
+def load_phrases(bot):
+    """Read every list from the database."""
+    global VERBS, CHANNEL_VERBS, POKES, _loaded_version
+    version = _version(bot)
+    lists = {}
+    with bot.db.engine.connect() as conn:
+        for (name,) in conn.execute(select(lists_table.c.name)):
+            lists[name] = []
+        rows = conn.execute(
+            select(phrases_table.c.list, phrases_table.c.phrase)
+            .order_by(phrases_table.c.list, phrases_table.c.position, phrases_table.c.id)
+        )
+        for name, phrase in rows:
+            lists.setdefault(name, []).append(phrase)
+    VERBS = lists.pop("slaps", [])
+    POKES = lists.pop("pokes", [])
+    random.shuffle(POKES)
+    CHANNEL_VERBS = {name.lower(): phrases for name, phrases in lists.items()}
+    _loaded_version = version
+    # Start the per-channel queues afresh with the new lists.
     channel_verb_queues.clear()
-    print("[sopel-slap] Slap verbs reloaded.")
 
 
-load_slaps()
-
-
-def load_pokes():
-    global POKES, _pokes_mtime
-    _pokes_mtime = _mtimes(POKES_PATH)
+def refresh_phrases(bot):
+    """Reload the lists if they changed since they were loaded."""
     try:
-        with open(POKES_PATH, "r", encoding="utf-8") as f:
-            POKES = json.load(f)
-        random.shuffle(POKES)
-    except Exception as e:
-        print(f"[sopel-slap] Failed to load pokes.json: {e}")
-        POKES = []
-
-    print("[sopel-slap] Poke verbs reloaded.")
+        if _version(bot) != _loaded_version:
+            load_phrases(bot)
+    except SQLAlchemyError:
+        LOGGER.exception("Could not read the slap phrases")
 
 
-load_pokes()
+# Files older versions kept in the package folder; imported once into an
+# empty database, then moved to <bot home>/backups/sopel-slap/.
+PACKAGE_DIR = os.path.dirname(__file__)
+LEGACY_FILES = [
+    ("slaps", os.path.join(PACKAGE_DIR, "verbs", "verbs.json")),
+    ("pokes", os.path.join(PACKAGE_DIR, "pokes", "pokes.json")),
+]
+LEGACY_CHANNEL_DIR = os.path.join(PACKAGE_DIR, "verbs", "channels")
+
+
+def migrate_legacy_files(bot):
+    files = list(LEGACY_FILES)
+    if os.path.isdir(LEGACY_CHANNEL_DIR):
+        for name in sorted(os.listdir(LEGACY_CHANNEL_DIR)):
+            if name.endswith(".json"):
+                files.append(("#" + name[:-len(".json")].lower(), os.path.join(LEGACY_CHANNEL_DIR, name)))
+    files = [(name, path) for name, path in files if os.path.isfile(path) and not os.path.islink(path)]
+    if not files:
+        return
+    backup_dir = os.path.join(bot.config.core.homedir, "backups", "sopel-slap")
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    try:
+        with bot.db.engine.begin() as conn:
+            if conn.execute(select(lists_table).limit(1)).first():
+                LOGGER.warning("Old phrase files not imported: the database already has phrase lists")
+            else:
+                for name, path in files:
+                    with open(path, encoding="utf-8") as f:
+                        phrases = [str(p) for p in json.load(f)]
+                    conn.execute(insert(lists_table).values(name=name))
+                    if phrases:
+                        conn.execute(insert(phrases_table), [
+                            {"list": name, "position": n, "phrase": p} for n, p in enumerate(phrases)])
+                conn.execute(insert(state_table).values(name="phrases", version=1))
+                LOGGER.info("Imported %d phrase files into the database", len(files))
+        os.makedirs(backup_dir, exist_ok=True)
+        for name, path in files:
+            label = "channels-" + name[1:] if name.startswith("#") else name
+            shutil.move(path, os.path.join(backup_dir, f"{label}.json.{stamp}"))
+        # links left at old paths now point nowhere
+        verbs_dir = os.path.join(PACKAGE_DIR, "verbs")
+        for name in os.listdir(verbs_dir):
+            path = os.path.join(verbs_dir, name)
+            if os.path.islink(path) and not os.path.exists(path):
+                os.remove(path)
+    except (OSError, ValueError, SQLAlchemyError):
+        LOGGER.exception("Could not import the old phrase files")
+
+
+def setup(bot):
+    metadata.create_all(bot.db.engine)
+    migrate_legacy_files(bot)
+    load_phrases(bot)
+
+
+# Kept for the .reload-slaps / .reload-pokes commands.
+def load_slaps(bot):
+    load_phrases(bot)
+
+
+load_pokes = load_slaps
 
 
 def slap(bot: SopelWrapper, trigger: Trigger, target: str):
@@ -168,17 +206,17 @@ def slap(bot: SopelWrapper, trigger: Trigger, target: str):
     channel = trigger.sender.lower()
     global_verbs = bot.settings.slap.verbs
 
-    refresh_slaps()
+    refresh_phrases(bot)
 
-    # The general slaps, plus this channel's own ones if it has a file.
-    verbs = VERBS + CHANNEL_VERBS.get(channel.lstrip("#&"), [])
+    # The general slaps, plus this channel's own ones if it has a list.
+    verbs = VERBS + CHANNEL_VERBS.get(channel, [])
 
     # Use per-channel shuffled queue to reduce repetition
     queue = channel_verb_queues[channel]
 
     if not queue:
         if not verbs:
-            bot.reply("No slap verbs are loaded. Please reload or check JSON files.")
+            bot.reply("No slap verbs yet. Add some in Sopel UI.")
             return
         queue.extend(verbs)
         random.shuffle(queue)
@@ -222,10 +260,10 @@ def poke(bot: SopelWrapper, trigger: Trigger, target: str):
     ):
         target = trigger.nick
 
-    refresh_pokes()
+    refresh_phrases(bot)
 
     if not POKES:
-        bot.say("No poke actions loaded. Please reload or check pokes.json.")
+        bot.say("No poke actions yet. Add some in Sopel UI.")
         return
 
     # verb = random.choice(POKES)
